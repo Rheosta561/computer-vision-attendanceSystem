@@ -14,7 +14,7 @@ app.onError((err, c) => {
         success : false,
         message : err.message,
         errors : err.errors,
-      } ,
+      },
       err.statusCode as any
     )
   }
