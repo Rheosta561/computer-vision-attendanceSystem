@@ -16,7 +16,12 @@ export const requireFaculty = async (c: Context, next: Next) => {
   }
 
 
-  const facultyKey = getCookie(c, 'faculty_key')
+  const cookieKey = getCookie(c, 'faculty_key')
+  const headerKey =
+    c.req.header('x-faculty_key') ||
+    c.req.header('faculty_key')
+
+  const facultyKey = cookieKey || headerKey
 
   if (!facultyKey) {
     throw new ApiError(403, 'Faculty key missing')

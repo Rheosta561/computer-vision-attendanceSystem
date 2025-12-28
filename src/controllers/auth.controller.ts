@@ -137,9 +137,12 @@ export const logoutUser = async (c: Context) => {
 
 // refresh session
 export const refreshSession = async (c: Context) => {
-  const refreshToken =
+  const refreshTokenCookie =
     getCookie(c, 'refreshToken') ||
     (await c.req.json().catch(() => null))?.refreshToken
+
+  const refreshTokenHeader = c.req.header('refreshToken') ; 
+  const refreshToken = refreshTokenCookie || refreshTokenHeader ; 
 
   if (!refreshToken) {
     throw new ApiError(401, 'Unauthorized')

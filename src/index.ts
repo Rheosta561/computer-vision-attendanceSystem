@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { ApiError } from './utils/ApiError'
 import { ApiResponse } from './utils/ApiResponse'
 import { authRouter } from './routers/auth.router'
+import { eventRouter } from './routers/event.router'
 
 const app = new Hono()
 
@@ -33,6 +34,8 @@ app.onError((err, c) => {
 
 
 app.route('/auth' , authRouter)
+
+app.route('/event', eventRouter);
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')
