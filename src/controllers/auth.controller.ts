@@ -6,6 +6,7 @@ import { ApiError } from '../utils/ApiError'
 import { ApiResponse } from '../utils/ApiResponse'
 import { getCookie , setCookie , deleteCookie } from 'hono/cookie'
 import { generateAccessAndRefreshTokens } from '../utils/tokenGenerator'
+import crypto from 'crypto'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -129,6 +130,7 @@ export const loginUser = async (c: Context) => {
 export const logoutUser = async (c: Context) => {
   deleteCookie(c, 'accessToken')
   deleteCookie(c, 'refreshToken')
+  deleteCookie(c, 'faculty_key')
 
   return c.json(new ApiResponse(200, {}, 'Logged out successfully'))
 }
@@ -188,4 +190,32 @@ export const refreshSession = async (c: Context) => {
   } catch {
     throw new ApiError(401, 'Invalid or expired refresh token')
   }
+}
+
+
+export const assignFacultyKey = async (c : Context) => {
+  const user = c.get('user')
+
+  if (! user) {
+    throw new ApiError(401, 'Unauthorized')
+  }
+
+  if (user.role !== 'faculty') {
+    throw new ApiError(403, 'Faculty access required')
+  }
+
+  const facultyKey = crypto
+    .createHmac('sha256', process.env.FACULTY_SECRET_KEY!)
+    .update(user.id)
+    .digest('hex')
+
+  setCookie(c, 'faculty_key', facultyKey, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'Strict',
+    maxAge: 60 * 60 * 24,
+  })
+
+
+  return c.json(new ApiResponse(200, { facultyKey }, 'Faculty key assigned'))
 }
