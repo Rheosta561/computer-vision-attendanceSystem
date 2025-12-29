@@ -45,5 +45,13 @@ model Event {
   updatedAt    DateTime @updatedAt
 }
 
+model Group{
+  id String @id @default(uuid())
+  name String 
+  facultyId String 
+  members String[]
+
+}
+
 
 

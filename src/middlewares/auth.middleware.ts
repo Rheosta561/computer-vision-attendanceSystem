@@ -3,12 +3,13 @@ import jwt from 'jsonwebtoken'
 import { getCookie } from 'hono/cookie'
 import { prisma } from '@/config/prismaClient'
 import { ApiError } from '../utils/ApiError'
+import { AppContext } from '@/types/context'
 
 interface JwtPayload {
   id: string
 }
 
-export const verifyJWT = async (c: Context, next: Next) => {
+export const verifyJWT = async (c: AppContext, next: Next) => {
   try {
     //fetching token 
     const token =
