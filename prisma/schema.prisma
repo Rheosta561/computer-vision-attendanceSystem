@@ -45,13 +45,19 @@ model Event {
   updatedAt    DateTime @updatedAt
 }
 
-model Group{
-  id String @id @default(uuid())
-  name String 
-  facultyId String 
-  members String[]
+model Group {
+  id         String   @id @default(uuid())
+  name       String
+  facultyId  String
+  members    String[]
 
+  code       String   @unique
+  inviteEnabled Boolean @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
+
 
 
 

@@ -12,6 +12,8 @@ import { ApiError } from '@/utils/ApiError'
 import { verifyJWT } from '@/middlewares/auth.middleware'
 import { requireFaculty } from '@/middlewares/faculty.middleware'
 import { ApiResponse } from '@/utils/ApiResponse'
+import { getMyGroupEvents } from '@/controllers/event.controller'
+import { getGroupEvents } from '@/controllers/event.controller'
 
 export const eventRouter = new Hono()
 
@@ -37,6 +39,20 @@ const updateEventSchema = z.object({
 
 
 // creating the event 
+eventRouter.get('/my-events', verifyJWT, async c => {
+  const user = c.get('user')
+
+  const query = c.req.query('q') || undefined
+  const cursor = c.req.query('cursor') || undefined
+  const limit = Number(c.req.query('limit') || 10)
+
+  return c.json(await getMyGroupEvents({
+    userId: user.id,
+    query,
+    cursor,
+    limit
+  }))
+})
 eventRouter.post('/', verifyJWT , requireFaculty ,  async (c) => {
   try {
     const body = await c.req.json()
@@ -56,6 +72,7 @@ eventRouter.post('/', verifyJWT , requireFaculty ,  async (c) => {
 
 
 // get event by Id 
+
 eventRouter.get('/:eventId', verifyJWT ,  async (c) => {
   try {
     const { eventId } = c.req.param()
@@ -114,6 +131,45 @@ eventRouter.patch('/:eventId', verifyJWT , requireFaculty ,  async (c) => {
   }
 })
 
+// get gropu events 
+eventRouter.get(
+  "/group/my",
+  verifyJWT,
+  async (c) => {
+    try {
+      const user = c.get("user");
+      const userId = user.id;
+
+      const { q, cursor, limit } = c.req.query();
+
+      const apiResponse = await getMyGroupEvents({
+        userId,
+        query: q,
+        cursor,
+        limit: limit ? Number(limit) : undefined
+      });
+
+      return c.json(
+        {res: apiResponse}
+      );
+
+    } catch (err) {
+      console.error("GET /events/group/my ERROR", err);
+
+      return c.json(
+        new ApiResponse(
+          500,
+          null,
+          "Failed to fetch group events"
+        ),
+        { status: 500 }
+      );
+    }
+  }
+);
+
+
+
 
 // deleting the event 
 eventRouter.delete('/:eventId', verifyJWT , requireFaculty , async (c) => {
@@ -129,5 +185,40 @@ eventRouter.delete('/:eventId', verifyJWT , requireFaculty , async (c) => {
       return c.json(err)
 
     return c.json(new ApiError(500, 'Unexpected error'), 500)
+  }
+})
+
+
+// get events of one group 
+eventRouter.get('/group/:groupId', verifyJWT, async (c) => {
+  try {
+    const groupId = c.req.param('groupId')
+
+    const query = c.req.query('q') ?? undefined
+    const cursor = c.req.query('cursor') ?? undefined
+    const limit = c.req.query('limit')
+      ? parseInt(c.req.query('limit')!)
+      : 10
+
+    const res = await getGroupEvents({
+      groupId,
+      query,
+      cursor,
+      limit
+    })
+
+    return c.json(res)
+
+  } catch (err: any) {
+    console.error('Group events error', err)
+
+    return c.json(
+      new ApiResponse(
+        err.statusCode ?? 500,
+        null,
+        err.message ?? 'Something went wrong'
+      ),
+      err.statusCode ?? 500
+    )
   }
 })
