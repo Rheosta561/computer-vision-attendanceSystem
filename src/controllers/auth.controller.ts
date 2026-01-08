@@ -12,7 +12,8 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 // registering user 
 export const registerUser = async (c: Context) => {
-  const { email , password ,  name , role } = await c.req.json()
+  const { email , password ,  name , role: requestRole } = await c.req.json()
+  const role = requestRole || 'student'
 
   if (!email || !password || !name || !role) {
     throw new ApiError(400, 'all fields are required')
