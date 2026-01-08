@@ -113,4 +113,132 @@ export const deleteEvent = async (eventId: string) => {
 }
 
 
+// get events fro the groups I am a part of 
+
+export const getMyGroupEvents = async ({
+  userId,
+  query,
+  cursor,
+  limit = 10
+}: {
+  userId: string
+  query?: string
+  cursor?: string
+  limit?: number
+}) => {
+
+  const groups = await prisma.group.findMany({
+   where: {
+  OR: [
+    { members: { has: userId } },
+    { facultyId: userId }
+  ]
+},
+
+    select: { id: true }
+  })
+
+  if (!groups.length) {
+    return new ApiResponse(
+      200,
+      { events: [], nextCursor: null, hasMore: false },
+      'User is not part of any groups'
+    )
+  }
+
+  const groupIds = groups.map(g => g.id)
+
+  const where: any = {
+    groupId: { in: groupIds }
+  }
+
+  if (query?.trim()) {
+    where.OR = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } }
+    ]
+  }
+
+  const events = await prisma.event.findMany({
+    where,
+    take: limit + 1,
+    skip: cursor ? 1 : 0,
+    cursor: cursor ? { id: cursor } : undefined,
+
+// orderinng
+    orderBy: [
+      { updatedAt: 'desc' },
+      { createdAt: 'desc' }
+    ],
+  })
+
+  let nextCursor: string | null = null
+  let hasMore = false
+
+  if (events.length > limit) {
+    const nextItem = events.pop()!
+    nextCursor = nextItem.id
+    hasMore = true
+  }
+
+  return new ApiResponse(
+    200,
+    { events, nextCursor, hasMore },
+    'Group events fetched successfully'
+  )
+}
+
+
+
+export const getGroupEvents = async ({
+  groupId,
+  query,
+  cursor,
+  limit = 10
+}: {
+  groupId: string
+  query?: string
+  cursor?: string
+  limit?: number
+}) => {
+
+  const where: any = { groupId }
+
+  if (query?.trim()) {
+    where.OR = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } }
+    ]
+  }
+
+  const events = await prisma.event.findMany({
+    where,
+    take: limit + 1,              // fetch one extra to check hasMore
+    skip: cursor ? 1 : 0,
+    cursor: cursor ? { id: cursor } : undefined,
+
+    orderBy: [
+      { updatedAt: 'desc' },
+      { createdAt: 'desc' }
+    ]
+  })
+
+  let nextCursor: string | null = null
+  let hasMore = false
+
+  if (events.length > limit) {
+    const nextItem = events.pop()!
+    nextCursor = nextItem.id
+    hasMore = true
+  }
+
+  return new ApiResponse(
+    200,
+    { events, nextCursor, hasMore },
+    'Group events fetched successfully'
+  )
+}
+
+
+
 

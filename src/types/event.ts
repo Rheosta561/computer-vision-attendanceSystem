@@ -15,3 +15,7 @@ export interface UpdateEventDTO {
   attendeesIds ?: string[]
   weightage?: number
 }
+
+
+
+
