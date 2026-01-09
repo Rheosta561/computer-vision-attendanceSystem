@@ -6,6 +6,36 @@ import { Prisma } from '@prisma/client'
 import { generateGroupCode } from '@/utils/groupCode'
 
 
+
+//  attaching embeddings with members
+const attachEmbeddingsToUsers = async (users: {
+  id: string
+  name: string
+  email: string
+  role: string
+}[]) => {
+  const profiles = await prisma.profile.findMany({
+    where: {
+      userId: { in: users.map(u => u.id) },
+    },
+    select: {
+      userId: true,
+      embeddings: true,
+    },
+  })
+
+  const profileMap = new Map(
+    profiles.map(p => [p.userId, p.embeddings])
+  )
+
+  return users.map(u => ({
+    ...u,
+    embeddings: profileMap.get(u.id) ?? null,
+  }))
+}
+
+
+
 // create group with retry 
 export const createGroup = async (data: CreateGroupDTO) => {
   let attempt = 0;
@@ -44,12 +74,11 @@ export const createGroup = async (data: CreateGroupDTO) => {
 
 // get group 
 export const getGroup = async (groupId: string) => {
-
   const group = await prisma.group.findUnique({
     where: { id: groupId },
-  });
+  })
 
-  if (!group) throw new ApiError(404, 'Group not found');
+  if (!group) throw new ApiError(404, 'Group not found')
 
   const members = await prisma.user.findMany({
     where: { id: { in: group.members } },
@@ -59,17 +88,20 @@ export const getGroup = async (groupId: string) => {
       email: true,
       role: true,
     },
-  });
+  })
+
+  const membersWithEmbeddings = await attachEmbeddingsToUsers(members)
 
   return new ApiResponse(
     200,
     {
       group,
-      memberDetails : members,
+      memberDetails: membersWithEmbeddings,
     },
     'Group fetched successfully'
-  );
-};
+  )
+}
+
 
 
 
@@ -82,7 +114,7 @@ export const updateGroup = async (
   const group = await prisma.group.update({
     where: { id: groupId },
     data,
-  });
+  })
 
   const members = await prisma.user.findMany({
     where: { id: { in: group.members } },
@@ -92,10 +124,17 @@ export const updateGroup = async (
       email: true,
       role: true,
     },
-  });
+  })
 
-  return new ApiResponse(200, {...group , members}, 'Group updated successfully');
-};
+  const membersWithEmbeddings = await attachEmbeddingsToUsers(members)
+
+  return new ApiResponse(
+    200,
+    { ...group, members: membersWithEmbeddings },
+    'Group updated successfully'
+  )
+}
+
 
 
 
@@ -234,9 +273,9 @@ export const toggleInvite = async (groupId: string) => {
 export const getGroupWithMembers = async (groupId: string) => {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
-  });
+  })
 
-  if (!group) throw new ApiError(404, 'Group not found');
+  if (!group) throw new ApiError(404, 'Group not found')
 
   const members = await prisma.user.findMany({
     where: { id: { in: group.members } },
@@ -246,14 +285,17 @@ export const getGroupWithMembers = async (groupId: string) => {
       email: true,
       role: true,
     },
-  });
+  })
+
+  const membersWithEmbeddings = await attachEmbeddingsToUsers(members)
 
   return new ApiResponse(
     200,
-    { ...group, members },
+    { ...group, members: membersWithEmbeddings },
     'Group export successful'
-  );
-};
+  )
+}
+
 export const getGroupByCode = async (code: string) => {
   const group = await prisma.group.findUnique({
     where: { code },
@@ -302,3 +344,23 @@ export const getMyGroups = async (userId: string) => {
   return new ApiResponse(200, groups, 'Fetched user groups')
 }
 
+export const removeMember = async (groupId: string, memberId: string) => {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+  });
+
+  if (!group) throw new ApiError(404, 'Group not found');
+
+  if (!group.members.includes(memberId)) {
+    throw new ApiError(400, 'Member not found in group');
+  }
+
+  const updatedMembers = group.members.filter((m) => m !== memberId);
+
+  const updated = await prisma.group.update({
+    where: { id: groupId },
+    data: { members: updatedMembers },
+  });
+
+  return new ApiResponse(200, updated, 'Member removed successfully');
+};

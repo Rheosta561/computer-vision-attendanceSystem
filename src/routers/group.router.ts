@@ -3,6 +3,7 @@ import { verifyJWT  } from '@/middlewares/auth.middleware'
 import { requireFaculty } from '@/middlewares/faculty.middleware'
 import { Hono } from 'hono'
 import { getGroupByCode , joinGroupByCode , toggleInvite , getMyGroups ,  getGroupWithMembers} from '@/controllers/group.controller'
+import { removeMember } from '@/controllers/group.controller'
 
 export const groupRouter = new Hono();
 
@@ -71,4 +72,7 @@ groupRouter.get('/:groupId/export', verifyJWT, requireFaculty, async c => {
   return c.json(await getGroupWithMembers(c.req.param('groupId')))
 })
 
-
+groupRouter.post('/:groupId/remove-member', verifyJWT, requireFaculty, async c => {
+  const { memberId } = await c.req.json();
+  return c.json(await removeMember(c.req.param('groupId'), memberId));
+})

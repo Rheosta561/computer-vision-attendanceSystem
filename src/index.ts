@@ -6,6 +6,7 @@ import { authRouter } from './routers/auth.router'
 import { eventRouter } from './routers/event.router'
 import {groupRouter} from './routers/group.router'
 import { userRouter } from './routers/user.router'
+import { profileRouter } from './routers/profile.router'
 
 const app = new Hono()
 
@@ -42,6 +43,8 @@ app.route('/event', eventRouter);
 app.route('/group', groupRouter);
 
 app.route('/user', userRouter);
+
+app.route('/profile' , profileRouter);
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')

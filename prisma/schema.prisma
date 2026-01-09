@@ -58,6 +58,17 @@ model Group {
   updatedAt  DateTime @updatedAt
 }
 
+model Profile {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  embeddings Float[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 
 
 
