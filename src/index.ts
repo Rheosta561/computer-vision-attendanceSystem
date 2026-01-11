@@ -7,6 +7,7 @@ import { eventRouter } from './routers/event.router'
 import {groupRouter} from './routers/group.router'
 import { userRouter } from './routers/user.router'
 import { profileRouter } from './routers/profile.router'
+import { sendEmail } from './utils/sendMail'
 
 const app = new Hono()
 
@@ -65,6 +66,18 @@ app.get('/success' , (c)=>{
   const response  = new ApiResponse(200 , { user : "Anubhav Mishra" } )
   return c.json(response )
 })
+
+// testing mail util
+app.get('/test-email', async (c) => {
+  await sendEmail({
+    to: 'manubhav731@gmail.com',
+    subject: 'Test Email',
+    html: '<h1>Email working 🚀</h1>',
+  })
+
+  return c.text('Email sent')
+})
+
 
 
 //
