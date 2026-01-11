@@ -10,7 +10,7 @@
     "@hono/node-server": "^1.19.6",
     "@prisma/client": "^6.19.1",
     "bcrypt": "^6.0.0",
-    "hono": "^4.11.1",
+    "hono": "^4.11.3",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^7.0.12",
     "zod": "^4.2.1"
