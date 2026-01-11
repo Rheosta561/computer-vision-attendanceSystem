@@ -6,9 +6,20 @@ import { ApiError } from '../utils/ApiError'
 import { ApiResponse } from '../utils/ApiResponse'
 import { getCookie , setCookie , deleteCookie } from 'hono/cookie'
 import { generateAccessAndRefreshTokens } from '../utils/tokenGenerator'
+import { generatePassword } from '../utils/passwordGenerator'
+import { sendEmail } from '@/utils/sendMail'
+
 import crypto from 'crypto'
 
 const isProduction = process.env.NODE_ENV === 'production'
+
+// DTU email validation regex
+const ALLOWED_DOMAIN = '@dtu.ac.in'
+
+const isDTUEmail = (email: string) => {
+  return email.toLowerCase().endsWith(ALLOWED_DOMAIN)
+}
+
 
 // registering user 
 export const registerUser = async (c: Context) => {
@@ -25,6 +36,12 @@ export const registerUser = async (c: Context) => {
 
   if (existingUser) {
     throw new ApiError(409, ' User already exists')
+  }
+  if (!isDTUEmail(email)) {
+    throw new ApiError(
+      403,
+      'Only dtu email addresses are allowed'
+    )
   }
 
   const hashedPassword = await bcrypt.hash(password, 10)
@@ -73,6 +90,12 @@ export const loginUser = async (c: Context) => {
 
   if (! email || ! password) {
     throw new ApiError(400, 'Email and password are required')
+  }
+   if (!isDTUEmail(email)) {
+    throw new ApiError(
+      403,
+      'Only dtu email addresses are allowed'
+    )
   }
 
   const user = await prisma.user.findUnique({
@@ -223,3 +246,195 @@ export const assignFacultyKey = async (c : Context) => {
 
   return c.json(new ApiResponse(200, { facultyKey }, 'Faculty key assigned'))
 }
+
+
+// share credentials via email
+export const getCredentials = async (c: Context) => {
+  const { email, name } = await c.req.json()
+
+  if (!email || !name) {
+    throw new ApiError(400, 'Email and name are required')
+  }
+
+  //  DTU email restriction
+  if (!isDTUEmail(email)) {
+    throw new ApiError(403, 'Only dtu email addresses are allowed')
+  }
+
+  //  Check if user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  if (existingUser) {
+    return c.json(
+      new ApiResponse(
+        200,
+        { exists: true },
+        'Account already exists'
+      )
+    )
+  }
+
+  //  random password
+  const rawPassword = generatePassword({
+    length: 12,
+  })
+
+  const hashedPassword = await bcrypt.hash(rawPassword, 10)
+
+  //  user
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name,
+      password: hashedPassword,
+      role: 'student',
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+    },
+  })
+
+  //  password via email
+  await sendEmail({
+    to: email,
+    subject: 'Your DTU-Attendance Portal Credentials',
+    html: `
+      <h2>Welcome, ${name}</h2>
+      <p>Your DTU-Attendance Portal account has been created.</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Temporary Password:</strong> ${rawPassword}</p>
+      <br />
+      <p>Please log in and change your password immediately.</p>
+      <br />
+      <p>— Tech DTU</p>
+    `,
+  })
+
+  return c.json(
+    new ApiResponse(
+      201,
+      { user },
+      'Account created and credentials sent to email'
+    ),
+    201
+  )
+}
+
+
+// change password 
+export const changePassword = async (c: Context) => {
+  const user = c.get('user')
+
+  if (!user) {
+    throw new ApiError(401, 'Unauthorized')
+  }
+
+  const { currentPassword, newPassword } = await c.req.json()
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, 'Current password and new password are required')
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id: user.id },
+  })
+
+  if (!existingUser) {
+    throw new ApiError(404, 'User not found')
+  }
+
+  const isMatch = await bcrypt.compare(
+    currentPassword,
+    existingUser.password
+  )
+
+  if (!isMatch) {
+    throw new ApiError(401, 'Current password is incorrect')
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+    },
+  })
+
+  return c.json(
+    new ApiResponse(200, {}, 'Password changed successfully')
+  )
+}
+
+
+// forget password 
+export const forgotPassword = async (c: Context) => {
+  const { email } = await c.req.json()
+
+  if (!email) {
+    throw new ApiError(400, 'Email is required')
+  }
+
+  // DTU email restriction
+  if (!isDTUEmail(email)) {
+    throw new ApiError(403, 'Only dtu email addresses are allowed')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+// no revealing user existence
+  if (!user) {
+    return c.json(
+      new ApiResponse(
+        200,
+        {},
+        'If the account exists, credentials have been sent to email'
+      )
+    )
+  }
+
+  // Generate temporary password
+  const tempPassword = generatePassword({
+    length: 12,
+  })
+
+  const hashedPassword = await bcrypt.hash(tempPassword, 10)
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      password: hashedPassword,
+    },
+  })
+
+  // Send email
+  await sendEmail({
+    to: email,
+    subject: 'DTU Attendance Portal – Password Reset',
+    html: `
+      <h2>Password Reset</h2>
+      <p>Your password has been reset.</p>
+      <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+      <br />
+      <p>Please log in and change your password immediately.</p>
+      <br />
+      <p>— Tech DTU</p>
+    `,
+  })
+
+  return c.json(
+    new ApiResponse(
+      200,
+      {},
+      'If the account exists, credentials have been sent to email'
+    )
+  )
+}
+

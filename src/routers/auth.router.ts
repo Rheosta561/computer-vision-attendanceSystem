@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { loginUser , registerUser , logoutUser  , refreshSession , assignFacultyKey} from "@/controllers/auth.controller";
+import { loginUser , registerUser , logoutUser  , refreshSession , assignFacultyKey, getCredentials, changePassword, forgotPassword} from "@/controllers/auth.controller";
 import { verifyJWT } from "@/middlewares/auth.middleware";
 import { requireFaculty } from "@/middlewares/faculty.middleware";
 import { ApiError } from "@/utils/ApiError";
@@ -32,6 +32,14 @@ authRouter.get('/faculty-protected', verifyJWT, requireFaculty , (c)=>{
   }
 
 })
+
+authRouter.post('/get-credentials' , getCredentials);
+
+// changepassword 
+authRouter.post('/change-password' , verifyJWT , changePassword);
+
+// forget password
+authRouter.post('/forgot-password' , forgotPassword);
 
 
 export { authRouter }
