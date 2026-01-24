@@ -1,3 +1,9 @@
+[![GitHub Stars](https://img.shields.io/github/stars/Rheosta561/Automark-Backend?style=flat-square)](https://github.com/Rheosta561/Automark-Backend/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/Rheosta561/Automark-Backend?style=flat-square)](https://github.com/Rheosta561/Automark-Backend/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/Rheosta561/Automark-Backend?style=flat-square)](https://github.com/Rheosta561/Automark-Backend/issues)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+---
 Automark Backend
 ================
 
@@ -25,7 +31,7 @@ TECH STACK
 --------------------------------------------------
 PROJECT STRUCTURE
 --------------------------------------------------
-
+```
 attendance-system-backend/
 │
 ├── prisma/
@@ -48,6 +54,7 @@ attendance-system-backend/
 ├── package.json               # Dependencies & scripts
 ├── package-lock.json
 └── README.md
+```
 
 
 --------------------------------------------------
@@ -159,7 +166,7 @@ AUTHENTICATION FLOW
 --------------------------------------------------
 EXAMPLE LOGIN REQUEST
 --------------------------------------------------
-
+``` bash
 POST /api/v1/auth/login
 Content-Type: application/json
 
@@ -183,6 +190,7 @@ Successful Response:
     "refreshToken": "JWT_REFRESH_TOKEN"
   }
 }
+```
 
 
 --------------------------------------------------
@@ -215,11 +223,9 @@ Please ensure:
 - Proper validation is added where needed
 
 
---------------------------------------------------
-LICENSE
---------------------------------------------------
+## License
 
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT). You are free to use, modify, and distribute this software under the terms of this license.
 
 
 --------------------------------------------------
