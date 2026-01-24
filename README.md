@@ -20,6 +20,7 @@ TECH STACK
 --------------------------------------------------
 
 - Node.js
+- Hono.js
 - TypeScript
 - Express
 - PostgreSQL
